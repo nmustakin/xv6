@@ -111,6 +111,7 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  p->nosyscall = 0;
 
   return p;
 }
@@ -139,6 +140,7 @@ userinit(void)
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
 
+  p->nosyscall = 0;
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
@@ -174,6 +176,45 @@ growproc(int n)
   return 0;
 }
 
+//Get system info
+//param = 1: return count of processes in the system
+//param = 2: return count of total system calls made so far
+//param = 3: return number of memory pages being used by the current process
+
+int
+info(int param)
+{
+  int count = 0; 
+  struct proc *p;
+  switch(param)
+  {
+    case 1: 
+	p = ptable.proc; 
+	acquire(&ptable.lock);
+	while(p->state != UNUSED){
+	  count++;
+	  p++;
+	}
+	release(&ptable.lock);
+	break; 
+    case 2:
+	p = myproc();
+	count = p->nosyscall; 
+	break;
+    case 3:
+	p = myproc();
+	count = (int)(p->sz/PGSIZE);
+	if(p->sz % PGSIZE) count++; 
+	break; 
+    default:
+	//printf(1, "Unrecognised parameter\n");
+	break; 
+  }
+
+  return count; 
+} 
+
+
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
@@ -199,6 +240,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->nosyscall = 0;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
