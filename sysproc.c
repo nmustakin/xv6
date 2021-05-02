@@ -105,3 +105,9 @@ sys_settickets(void)
   if(argint(0, &T) <0) return -1; 
   return settickets(T); 
 }
+
+int 
+sys_getticks(void)
+{
+  return getticks(); 
+}

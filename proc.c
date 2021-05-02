@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#define DEFAULT_TICKETS 10
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -112,6 +114,8 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
   p->nosyscall = 0;
+  p->tickets = DEFAULT_TICKETS; 
+  p->ticks = 0; 
 
   return p;
 }
@@ -140,7 +144,7 @@ userinit(void)
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
 
-  p->nosyscall = 0;
+  //p->nosyscall = 0;
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
@@ -188,12 +192,12 @@ info(int param)
   struct proc *p;
   switch(param)
   {
-    case 1: 
-	p = ptable.proc; 
+    case 1:  
 	acquire(&ptable.lock);
-	while(p->state != UNUSED){
-	  count++;
-	  p++;
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+	  if(p->state != UNUSED){
+	    count++;
+	  }
 	}
 	release(&ptable.lock);
 	break; 
@@ -223,6 +227,28 @@ settickets(int T)
   p->tickets = T; 
 
   return p->tickets; 
+}
+
+
+//get number of ticks the process has ran for
+int
+getticks()
+{
+  //struct proc *p = myproc(); 
+  //return p->ticks;
+
+  struct proc *p; 
+  acquire(&ptable.lock);
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+   // if (p->pid >= 3){
+    if(p->state != UNUSED && p->state != SLEEPING){
+      cprintf("%s %d, ", p->name, p->ticks);
+    }
+  }
+  cprintf("\n"); 
+  release(&ptable.lock);
+  return 1;   
 }
 
 // Create a new process copying p as the parent.
@@ -377,35 +403,80 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  uint it = 0;  
   for(;;){
     // Enable interrupts on this processor.
     sti();
+    it++; 
+    //if(noproc) continue; 
+    //noproc = 1; 
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    uint turn = rand(getRunnableTickets()); 
+    uint sum = 0; 
+
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(it % 20 == 0){
+        //cprintf("Process name %s , Ticks: %d\n", p->name, p->ticks); 
+      }
       if(p->state != RUNNABLE)
         continue;
-
+      if(turn > sum + p->tickets){
+	sum += p->tickets;
+	continue; 
+      } 
+      //else break; 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      c->proc = p;
+      //noproc = 0; 
+      c->proc = p;   
+      p->ticks++; 
       switchuvm(p);
       p->state = RUNNING;
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
-
+      
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-    }
+      break; 
+    } 
     release(&ptable.lock);
-
   }
 }
+
+//Random number generator using BlumBlumShub
+uint
+rand(int max){
+
+  static uint seed = 65521;
+  uint m = 2903*2879;
+
+  seed = (seed*seed)% m;
+  if(max <= 0) return 1; 
+  return seed%max;
+}
+
+
+//get the number of total tickets held by 
+//runnable processes 
+uint 
+getRunnableTickets()
+{
+  struct proc *p;
+  uint total = 0;
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == RUNNABLE) total += p->tickets;
+  }
+  return total;
+}
+
+
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores

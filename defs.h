@@ -122,6 +122,9 @@ void            wakeup(void*);
 void            yield(void);
 int 		info(int);
 int		settickets(int); 
+uint 		rand(int); 
+uint 		getRunnableTickets(); 
+int 		getticks(); 
 
 // swtch.S
 void            swtch(struct context**, struct context*);
