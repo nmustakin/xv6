@@ -214,6 +214,16 @@ info(int param)
   return count; 
 } 
 
+// Set number of process tickets
+// Returns the same number, proving ticket setting is successful
+int
+settickets(int T)
+{
+  struct proc * p = myproc(); 
+  p->tickets = T; 
+
+  return p->tickets; 
+}
 
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.

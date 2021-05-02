@@ -22,6 +22,8 @@ forktest(void)
 
   for(n=0; n<N; n++){
     pid = fork();
+
+   // cprintf("Number of processes: %d\n", info(1));
     if(pid < 0)
       break;
     if(pid == 0)
@@ -51,6 +53,8 @@ forktest(void)
 int
 main(void)
 {
+  //cprintf("Number of processes: %d\n", info(1));
   forktest();
+  //cprintf("Number of processes: %d\n", info(1));
   exit();
 }

@@ -97,3 +97,11 @@ sys_info(void)
   if(argint(0, &param) < 0) return -1;  
   return info(param);
 }
+
+int
+sys_settickets(void)
+{
+  int T;
+  if(argint(0, &T) <0) return -1; 
+  return settickets(T); 
+}
