@@ -19,10 +19,14 @@ int main(int argc, char* argv[]){
     printf(1, "checkpoint3e\npage tables of current process:%d\n\n", info(2));
 
     printf(1, "checkpoint4\nsystem calls made by current process:%d\n\n", info(3));
-   // int pid1 = fork();    
+   // int pid1 = fork();
+    settickets(30);    
     printf(1, "checkpoint4a\nsystem calls made by current process:%d\n\n", info(3));
+    settickets(40);
     printf(1, "checkpoint4b\nsystem calls made by current process:%d\n\n", info(3));
+    settickets(60);
     printf(1, "checkpoint4c\nsystem calls made by current process:%d\n\n", info(3));
+    settickets(50);
     printf(1, "checkpoint4d\nsystem calls made by current process:%d\n\n", info(3));
    // sleep(5);
     int pid = getpid();  	

@@ -52,6 +52,7 @@ struct proc {
   uint nosyscall;	       // Number of system calls made by this process
   uint tickets;		       // Number of tickets the process holds
   uint ticks; 		       // Number of ticks the process has run for
+  double pass; 		       // Total pass of this process
 };
 
 // Process memory is laid out contiguously, low addresses first:

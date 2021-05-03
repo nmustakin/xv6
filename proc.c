@@ -116,7 +116,7 @@ found:
   p->nosyscall = 0;
   p->tickets = DEFAULT_TICKETS; 
   p->ticks = 0; 
-
+  p->pass = 0.0; 
   return p;
 }
 
@@ -400,34 +400,32 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p;// *min;
   struct cpu *c = mycpu();
   c->proc = 0;
-  uint it = 0;  
+  //double minpass = 10000.0;
+  //int i= 0; // minI=0; 
+  
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    it++; 
-    //if(noproc) continue; 
-    //noproc = 1; 
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+  //uncomment this for lottery scheduling 
 
     uint turn = rand(getRunnableTickets()); 
     uint sum = 0; 
 
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(it % 20 == 0){
-        //cprintf("Process name %s , Ticks: %d\n", p->name, p->ticks); 
-      }
       if(p->state != RUNNABLE)
         continue;
       if(turn > sum + p->tickets){
 	sum += p->tickets;
 	continue; 
       } 
-      //else break; 
+ 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
@@ -444,7 +442,43 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       c->proc = 0;
       break; 
-    } 
+    }
+  //uncomment this for lottery scheduling
+
+/*    //start comment block here to turn off stride scheduling
+    for(p = ptable.proc, min = ptable.proc, i = 0, minpass = 10000.0; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+      {
+	i++;
+        continue;
+      }
+      if(p->pass <= minpass){
+        minpass = p->pass; 
+        min = p;
+        //minI = i; 
+	//cprintf("PID :%d, Pass: %d\n", min->pid, min->pass);  
+      }
+      i++; 
+    }
+    //min = &ptable.proc[minI]; 
+    double stride = (double) (getRunnableTickets()/(min->tickets));
+    //if(getRunnableTickets() % min->tickets) stride++;    
+    min->pass += stride; 
+    //cprintf("Selected PID :%d, Pass: %d\n", min->pid, min->pass);
+    c->proc = min;   
+    min->ticks++; 
+    switchuvm(min);
+    min->state = RUNNING;
+
+    swtch(&(c->scheduler), min->context);
+    switchkvm();
+      
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+
+  */  //end comment block here 
+
     release(&ptable.lock);
   }
 }
@@ -473,6 +507,7 @@ getRunnableTickets()
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == RUNNABLE) total += p->tickets;
   }
+  //if(total < 10) total = 10; 
   return total;
 }
 
